@@ -67,6 +67,10 @@
   .bar{flex:1;height:7px;border-radius:5px;background:var(--line);overflow:hidden}
   .bar i{display:block;height:100%;background:var(--tenho);width:0%}
   .progress .pct{font-size:12px;font-weight:700;color:var(--tenho);min-width:38px;text-align:right}
+  .toolbar{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-top:8px}
+  .toolbar .sep{color:var(--line)}
+  .lnk{background:none;border:none;color:var(--accent);font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:2px 4px}
+  .lnk:active{opacity:.55}
 
   /* ===== Conteúdo ===== */
   main{padding:12px 14px 60px;max-width:1100px;margin:0 auto}
@@ -185,6 +189,12 @@
   <div class="progress">
     <div class="bar"><i id="progBar"></i></div>
     <div class="pct" id="progPct">0%</div>
+  </div>
+
+  <div class="toolbar">
+    <button class="lnk" id="btnExpandAll">▼ Expandir tudo</button>
+    <span class="sep">·</span>
+    <button class="lnk" id="btnCollapseAll">▶ Recolher tudo</button>
   </div>
 </header>
 
@@ -592,6 +602,14 @@ searchInput.addEventListener("input", ()=>{
 });
 document.getElementById("searchClear").addEventListener("click", ()=>{
   searchInput.value=""; query=""; searchWrap.classList.remove("has-value"); render(); searchInput.focus();
+});
+
+/* expandir / recolher todas as seleções */
+document.getElementById("btnExpandAll").addEventListener("click", ()=>{
+  collapsed.clear(); render(); window.scrollTo(0,0);
+});
+document.getElementById("btnCollapseAll").addEventListener("click", ()=>{
+  SECTIONS.forEach(s=>collapsed.add(s.key)); subOpen.clear(); render(); window.scrollTo(0,0);
 });
 
 /* ===================== COMPARTILHAR (snapshot só-leitura) =====================
