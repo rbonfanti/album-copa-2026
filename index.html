@@ -73,18 +73,30 @@
   .empty{text-align:center;color:var(--muted);padding:60px 20px;font-size:15px}
   .empty .big{font-size:34px;margin-bottom:8px}
 
-  section.team{margin-bottom:18px}
-  .team-head{
-    display:flex;align-items:baseline;gap:8px;position:sticky;top:0;z-index:5;
-    padding:8px 2px;margin-bottom:4px;background:linear-gradient(var(--bg),var(--bg) 70%,transparent)
+  details.team{margin-bottom:14px}
+  summary.team-head{
+    list-style:none;display:flex;align-items:center;gap:8px;cursor:pointer;
+    position:sticky;top:0;z-index:5;padding:9px 4px;margin-bottom:4px;
+    background:linear-gradient(var(--bg),var(--bg) 78%,transparent)
   }
+  summary.team-head::-webkit-details-marker{display:none}
+  .chev{flex:none;font-size:10px;color:var(--muted);transition:transform .15s;width:11px;text-align:center}
+  details[open] > summary .chev{transform:rotate(90deg)}
   .team-head .code{
     font-size:12px;font-weight:800;letter-spacing:.04em;background:var(--ink);color:#fff;
     padding:3px 7px;border-radius:6px
   }
   .team-head .name{font-size:15px;font-weight:700}
   .team-head .grp{font-size:11px;color:var(--muted);font-weight:600}
-  .team-head .tcnt{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
+  .team-head .tcnt{margin-left:auto;font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap;text-align:right}
+  .team-head .tcnt .hh{color:var(--tenho)} .team-head .tcnt .hf{color:#dc2626} .team-head .tcnt .hr{color:var(--dupe)}
+  /* subgrupo de substitutos (separado, não conta) */
+  details.subg{margin:8px 0 2px;border-top:1px dashed var(--line);padding-top:6px}
+  details.subg > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:7px;
+    font-size:12px;font-weight:700;color:#7c3aed;padding:4px 2px}
+  details.subg > summary::-webkit-details-marker{display:none}
+  details.subg .chev{color:#7c3aed}
+  .sgnote{margin-left:auto;font-size:10px;color:var(--muted);font-weight:600}
 
   .grid{display:grid;grid-template-columns:1fr;gap:7px}
   @media(min-width:560px){.grid{grid-template-columns:1fr 1fr}}
@@ -400,6 +412,8 @@ function setS(id, h, d){
 /* ===================== RENDER ===================== */
 let view = "faltam";
 let query = "";
+const collapsed = new Set(); // seleções recolhidas (default: expandidas)
+const subOpen   = new Set(); // subgrupos de substitutos abertos (default: fechados)
 
 const app = document.getElementById("app");
 
@@ -420,59 +434,72 @@ function inView(st){
   return true; // tudo
 }
 
+function cardHTML(st){
+  const s = getS(st.id);
+  let cls = s.d>0 ? "dupe" : (s.h ? "have" : "");
+  if(st.fora) cls += " naoconv";
+  if(st.sub)  cls += " subst";
+  const numTxt = st.type==="substituto" ? st.num : (st.sectionKey==="ESP" ? (st.num||"★") : st.num);
+  const tag = st.fora ? `<span class="pill fora">não convocado</span>`
+            : st.sub  ? `<span class="pill sub">substituto</span>` : "";
+  return `<div class="card ${cls}" data-id="${st.id}">
+    <div class="num">${numTxt}</div>
+    <div class="info">
+      <div class="nm">${st.nm}${tag}</div>
+      <div class="mt"><span class="typeicon">${TYPE_ICON[st.type]||""}</span> ${st.mt}</div>
+    </div>
+    <div class="stepwrap">
+      <div class="stepper">
+        <button data-act="dec" data-id="${st.id}" aria-label="menos repetida">−</button>
+        <span class="dval ${s.d>0?'':'zero'}">${s.d}</span>
+        <button data-act="inc" data-id="${st.id}" aria-label="mais repetida">+</button>
+      </div>
+      <div class="rep-label">repetidas</div>
+    </div>
+  </div>`;
+}
+
 function render(){
   const toks = tokens(query);
+  const q = !!query;            // buscando -> força tudo aberto
   let html = "";
   let shown = 0;
 
   SECTIONS.forEach(sec=>{
-    const list = sec.stickers.filter(st => inView(st) && matches(st, sec, toks));
-    if(!list.length) return;
-    shown += list.length;
+    const base = sec.stickers.filter(st=>!st.sub);
+    const subs = sec.stickers.filter(st=>st.sub);
+    const baseList = base.filter(st => inView(st) && matches(st, sec, toks));
+    const subList  = subs.filter(st => inView(st) && matches(st, sec, toks));
+    if(!baseList.length && !subList.length) return;
+    shown += baseList.length + subList.length;
 
-    const total = sec.stickers.length;
-    let subcount;
-    if(view==="faltam")      subcount = `faltam ${list.length}`;
-    else if(view==="repetidas") subcount = `${list.reduce((a,st)=>a+getS(st.id).d,0)} repetidas`;
-    else {
-      const have = sec.stickers.filter(st=>getS(st.id).h).length;
-      subcount = `${have}/${total}`;
-    }
+    // resumo da seleção — sempre sobre a BASE inteira (substitutos não contam)
+    const bHave  = base.filter(st=>getS(st.id).h).length;
+    const bFalta = base.length - bHave;
+    const bRep   = base.filter(st=>getS(st.id).d>0).length;
+    let tcnt;
+    if(view==="faltam")         tcnt = `<span class="hf">faltam ${baseList.length}</span>`;
+    else if(view==="repetidas") tcnt = `<span class="hr">${baseList.length} repetidas</span>`;
+    else tcnt = `<span class="hh">${bHave}/${base.length}</span> · <span class="hf">faltam ${bFalta}</span> · <span class="hr">${bRep} rep</span>`;
 
-    html += `<section class="team">
-      <div class="team-head">
+    const teamOpen = q || !collapsed.has(sec.key);
+    html += `<details class="team" data-key="${sec.key}" ${teamOpen?"open":""}>
+      <summary class="team-head">
+        <span class="chev">▶</span>
         <span class="code">${sec.code}</span>
         <span class="name">${sec.name}</span>
         ${sec.group!=="–" ? `<span class="grp">Grupo ${sec.group}</span>`:""}
-        <span class="tcnt">${subcount}</span>
-      </div>
-      <div class="grid">`;
-
-    list.forEach(st=>{
-      const s = getS(st.id);
-      let cls = s.d>0 ? "dupe" : (s.h ? "have" : "");
-      if(st.fora) cls += " naoconv";
-      if(st.sub)  cls += " subst";
-      const numTxt = st.type==="substituto" ? st.num : (st.sectionKey==="ESP" ? (st.num||"★") : st.num);
-      const tag = st.fora ? `<span class="pill fora">não convocado</span>`
-                : st.sub  ? `<span class="pill sub">substituto</span>` : "";
-      html += `<div class="card ${cls}" data-id="${st.id}">
-        <div class="num">${numTxt}</div>
-        <div class="info">
-          <div class="nm">${st.nm}${tag}</div>
-          <div class="mt"><span class="typeicon">${TYPE_ICON[st.type]||""}</span> ${st.mt}</div>
-        </div>
-        <div class="stepwrap">
-          <div class="stepper">
-            <button data-act="dec" data-id="${st.id}" aria-label="menos repetida">−</button>
-            <span class="dval ${s.d>0?'':'zero'}">${s.d}</span>
-            <button data-act="inc" data-id="${st.id}" aria-label="mais repetida">+</button>
-          </div>
-          <div class="rep-label">repetidas</div>
-        </div>
-      </div>`;
-    });
-    html += `</div></section>`;
+        <span class="tcnt">${tcnt}</span>
+      </summary>`;
+    if(baseList.length) html += `<div class="grid">${baseList.map(cardHTML).join("")}</div>`;
+    if(subList.length){
+      const subO = q || subOpen.has(sec.key);
+      html += `<details class="subg" data-key="${sec.key}" ${subO?"open":""}>
+        <summary><span class="chev">▶</span>🔁 Substitutos <span class="sgnote">${subList.length} · informativo, não conta</span></summary>
+        <div class="grid">${subList.map(cardHTML).join("")}</div>
+      </details>`;
+    }
+    html += `</details>`;
   });
 
   if(!shown){
@@ -482,20 +509,31 @@ function render(){
     html = `<div class="empty"><div class="big">🔎</div>${msg}</div>`;
   }
   app.innerHTML = html;
+
+  // mantém recolher/expandir entre re-renders (marcar uma figurinha não reabre tudo)
+  app.querySelectorAll("details.team").forEach(d=>{
+    d.addEventListener("toggle", ()=>{ if(d.open) collapsed.delete(d.dataset.key); else collapsed.add(d.dataset.key); });
+  });
+  app.querySelectorAll("details.subg").forEach(d=>{
+    d.addEventListener("toggle", ()=>{ if(d.open) subOpen.add(d.dataset.key); else subOpen.delete(d.dataset.key); });
+  });
+
   updateCounters();
 }
 
 function updateCounters(){
-  let falta=0, dup=0, baseHave=0, baseTotal=0;
+  // substitutos NÃO entram em nenhuma contagem (são informativos)
+  let falta=0, rep=0, baseHave=0, baseTotal=0;
   ALL_STICKERS.forEach(st=>{
+    if(st.sub) return;
     const s=getS(st.id);
     if(!s.h) falta++;
-    dup+=s.d;
-    if(!st.sub){ baseTotal++; if(s.h) baseHave++; } // % de conclusão só do álbum-base (980)
+    if(s.d>0) rep++;
+    baseTotal++; if(s.h) baseHave++;
   });
   document.getElementById("cnt-faltam").textContent = falta;
-  document.getElementById("cnt-repetidas").textContent = dup;
-  document.getElementById("cnt-tudo").textContent = TOTAL;
+  document.getElementById("cnt-repetidas").textContent = rep;
+  document.getElementById("cnt-tudo").textContent = baseTotal;
   const pct = Math.round(baseHave/baseTotal*100);
   document.getElementById("progBar").style.width = pct+"%";
   document.getElementById("progPct").textContent = pct+"%";
@@ -577,22 +615,28 @@ function buildSnapshot(kind){
   const isRep = kind==="repetidas";
   const owner = getOwnerName();
   const d=new Date(); const dt=pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear();
-  let total=0, body="";
+  let total=0, body="", subsBody="", subsTotal=0;
+  const rowOf=(st)=>{
+    const s=getS(st.id);
+    const numTxt= st.type==="substituto"? st.num : (st.sectionKey==="ESP"?(st.num||"★"):st.num);
+    const q= isRep? '<span class="q">×'+s.d+'</span>' : '';
+    return '<div class="it"><span class="n">'+esc(numTxt)+'</span><span class="nm">'+esc(st.nm)+'</span>'+q+'</div>';
+  };
+  const pred=(st)=>{const s=getS(st.id); return isRep? s.d>0 : !s.h;};
   SECTIONS.forEach(sec=>{
-    const items=sec.stickers.filter(st=>{const s=getS(st.id); return isRep? s.d>0 : !s.h;});
-    if(!items.length) return;
-    let rows="";
-    items.forEach(st=>{
-      const s=getS(st.id);
-      const numTxt= st.type==="substituto"? st.num : (st.sectionKey==="ESP"?(st.num||"★"):st.num);
-      const q= isRep? '<span class="q">×'+s.d+'</span>' : '';
-      const sb= st.sub? ' <span class="sb">sub</span>' : '';
-      rows+='<div class="it"><span class="n">'+esc(numTxt)+'</span><span class="nm">'+esc(st.nm)+sb+'</span>'+q+'</div>';
-      total+= isRep? s.d : 1;
-    });
-    body+='<section><h2><span class="cd">'+esc(sec.code)+'</span> '+esc(sec.name)+' <span class="tc">'+items.length+'</span></h2><div class="grid">'+rows+'</div></section>';
+    const base=sec.stickers.filter(st=>!st.sub && pred(st));
+    const subs=sec.stickers.filter(st=>st.sub && pred(st));
+    if(base.length){
+      body+='<section><h2><span class="cd">'+esc(sec.code)+'</span> '+esc(sec.name)+' <span class="tc">'+base.length+'</span></h2><div class="grid">'+base.map(rowOf).join("")+'</div></section>';
+      total+=base.length;
+    }
+    if(subs.length){
+      subsBody+='<section><h2><span class="cd">'+esc(sec.code)+'</span> '+esc(sec.name)+' <span class="tc">'+subs.length+'</span></h2><div class="grid">'+subs.map(rowOf).join("")+'</div></section>';
+      subsTotal+=subs.length;
+    }
   });
   if(!body) body='<p class="empty">Nada marcado aqui ainda.</p>';
+  if(subsBody) subsBody='<div class="subsblk"><h3>🔁 Substitutos — '+subsTotal+' <small>(informativo · fora da contagem)</small></h3>'+subsBody+'</div>';
   const titulo= isRep? "Repetidas — tenho pra trocar" : "Faltantes — preciso";
   const accent= isRep? "#d97706" : "#dc2626";
   const css="*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f4f5f7;color:#1c1f24;font-size:16px;line-height:1.4;padding-bottom:40px}"
@@ -600,10 +644,11 @@ function buildSnapshot(kind){
    +"main{max-width:900px;margin:0 auto;padding:12px 14px}section{margin-bottom:16px}h2{font-size:14px;font-weight:700;padding:8px 2px;display:flex;align-items:center;gap:8px;border-bottom:2px solid #e5e7eb;margin-bottom:6px}.cd{background:#1c1f24;color:#fff;font-size:11px;font-weight:800;padding:3px 7px;border-radius:6px;letter-spacing:.04em}.tc{margin-left:auto;font-size:12px;color:#6b7280;font-weight:700}"
    +".grid{display:grid;grid-template-columns:1fr;gap:5px}@media(min-width:560px){.grid{grid-template-columns:1fr 1fr}}@media(min-width:880px){.grid{grid-template-columns:1fr 1fr 1fr}}"
    +".it{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e5e7eb;border-left:4px solid "+accent+";border-radius:9px;padding:7px 10px}.n{flex:none;min-width:30px;height:28px;padding:0 6px;border-radius:7px;background:"+accent+";color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center}.nm{flex:1;font-weight:600;font-size:14px}.q{flex:none;font-weight:800;color:"+accent+";font-size:16px}.sb{font-size:9px;font-weight:800;background:#7c3aed;color:#fff;padding:1px 5px;border-radius:5px;text-transform:uppercase}"
-   +".empty{color:#6b7280;text-align:center;padding:40px}footer{text-align:center;color:#9ca3af;font-size:11px;margin-top:20px}";
+   +".empty{color:#6b7280;text-align:center;padding:40px}footer{text-align:center;color:#9ca3af;font-size:11px;margin-top:20px}"
+   +".subsblk{margin-top:26px;border-top:3px solid #7c3aed;padding-top:6px}.subsblk h3{font-size:14px;color:#7c3aed;font-weight:800;padding:8px 2px}.subsblk h3 small{font-weight:600;color:#6b7280;font-size:11px}.subsblk .it{border-left-color:#7c3aed}.subsblk .n{background:#7c3aed}.subsblk .q{color:#7c3aed}";
   return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(titulo)+" — "+esc(owner)+'</title><style>'+css+'</style></head><body>'
    +'<header><div class="ttl">⚽ '+esc(titulo)+'</div><div class="own">'+esc(owner)+' · '+dt+'</div><div class="ro">📖 Modo leitura — esta é a lista de '+esc(owner)+'. Abrir aqui não altera a sua coleção.</div><div class="tot">'+total+' '+(isRep?"repetidas":"faltantes")+'</div></header>'
-   +'<main>'+body+'</main>'
+   +'<main>'+body+subsBody+'</main>'
    +'<footer>Álbum Copa 2026 · lista gerada para troca em '+dt+'</footer></body></html>';
 }
 
