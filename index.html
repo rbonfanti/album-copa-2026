@@ -124,10 +124,9 @@
   .card .nm{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .card .mt{font-size:11px;color:var(--muted);font-weight:500;margin-top:1px}
   .card .typeicon{font-size:11px}
-  /* não convocado (erro Panini) — visual "desabilitado" */
-  .card.naoconv{background:#dfe3e8;border-color:#cbd2d9}
-  .card.naoconv .nm{color:#6b7280;text-decoration:line-through;text-decoration-thickness:1px}
-  .card.naoconv .num{background:#9ca3af;border-color:#9ca3af;color:#eef0f2}
+  /* não convocado (erro Panini) — nome riscado + selo, mas o STATUS (tem/falta/
+     repetida) continua visível pela cor normal do card */
+  .card.naoconv .nm{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
   /* substituto (pacote de atualização) */
   .card.subst{border-left-color:#7c3aed;background:#f5f3ff}
   .card.subst .num{background:#7c3aed;border-color:#7c3aed;color:#fff}
@@ -313,56 +312,52 @@ const FORA = {
 };
 
 /* ===========================================================================
-   SUBSTITUTOS — convocados do elenco FINAL da Copa 2026 que NÃO estão no
-   álbum-base. Derivados do cruzamento (elenco final − álbum). Entram como
-   figurinhas extras "S1, S2…" agrupadas no fim de cada seleção.
-   RESSALVAS:
-   - É o conjunto REAL de convocados ausentes do álbum (~430), mais amplo que o
-     Update Set curado da Panini (~120). Nem todos terão figurinha física —
-     marque o que realmente aparecer na troca.
-   - GHA está PARCIAL (elenco final não confirmado por completo na pesquisa).
-   - Não conta na % de conclusão (a barra mede só o álbum-base de 980).
+   SUBSTITUTOS — Update Set da Panini (118 figurinhas = mesmo nº dos cortes).
+   Por seleção, a quantidade = nº de "não convocados" daquela seleção.
+   Nomes confirmados pela imprensa estão preenchidos; o restante fica como
+   "(não identificado)" até sair a checklist oficial do kit (julho/2026).
+   São informativos: NÃO entram em nenhuma contagem nem na % de conclusão.
    =========================================================================== */
 const SUBS = {
-  MEX:["Guillermo Ochoa","Raúl Rangel","Carlos Acevedo","Mateo Chávez","Érik Lira","Luis Romo","Álvaro Fidalgo","Luis Chávez","Obed Vargas","Gilberto Mora","Brian Gutiérrez","Julián Quiñones","Armando González","Guillermo Martínez"],
-  RSA:["Ricardo Goss","Ime Okon","Olwethu Makhanya","Bradley Cross","Thabang Matuludi","Sphephelo Sithole","Jayden Adams","Themba Zwane","Oswin Appollis","Tshepang Moremi","Thapelo Maseko","Relebohile Mofokeng","Kamogelo Sebelebele","Evidence Makgopa"],
-  KOR:["Song Bum-keun","Kim Tae-hyeon","Lee Gi-hyuk","Kim Moon-hwan","Park Jin-seob","Cho Wi-je","Bae Jun-ho","Eom Ji-sung","Yang Hyun-jun"],
-  CZE:["Lukáš Horníček","Robin Hranáč","Štěpán Chaloupek","David Jurásek","David Douděra","Alexandr Sojka","Vladimír Darida","Hugo Sochůrek","Jan Kuchta","Mojmír Chytil","Denis Višinský"],
-  CAN:["Maxime Crépeau","Owen Goodman","Joel Waterman","Luc de Fougerolles","Alfie Jones","Nathan Saliba","Ali Ahmed","Jayden Nelson","Tani Oluwaseyi","Promise David"],
-  QAT:["Mahmoud Abunada","Salah Zakaria","Sultan Al Braik","Ahmed Fathi","Ahmed Alaa","Jassem Gaber","Ahmed Al Janhi","Tahseen Mohammed","Yusuf Abdurisag","Ayoub Al Aloui","Mohammed Muntari","Issa Lai"],
-  BRA:["Ederson","Weverton","Bremer","Alex Sandro","Léo Pereira","Roger Ibañez","Douglas Santos","Fabinho","Ederson (Atalanta)","Andrey Santos","Neymar","Endrick","Igor Thiago"],
-  MAR:["Reda Tagnaouti","Anass Salah-Eddine","Youssef Belammari","Zakaria El Ouahdi","Chadi Riad","Redouane Halhal","Issa Diop","Samir El Mourabet","Ayyoub Bouaddi","Neil El Aynaoui","Chemsdine Talbi","Gessime Yassine","Ayoube Amaimouni"],
-  HAI:["Alexandre Pierre","Josue Duverger","Wilguens Paugain","Keeto Thermoncy","Carl Fred Sainté","Woodensky Pierre","Dominique Simon","Wilson Isidor","Yassin Fortuné","Lenny Joseph"],
-  SCO:["Craig Gordon","Liam Kelly","Dom Hyam","Nathan Patterson","Finlay Curtis","George Hirst","Lawrence Shankland","Ross Stewart"],
-  USA:["Chris Brady","Matt Turner","Max Arfsten","Sergiño Dest","Miles Robinson","Joe Scally","Auston Trusty","Sebastian Berhalter","Alejandro Zendejas","Gio Reyna"],
-  PAR:["Gastón Olveira","José Canale","Alexandro Maidana","Gustavo Velázquez","Kaku","Braian Ojeda","Maurício","Gabriel Ávalos","Alex Arce","Isidro Pitta","Gustavo Caballero"],
-  AUS:["Paul Izzo","Patrick Beach","Lucas Herrington","Kai Trewin","Jason Geria","Jacob Italiano","Paul Okon Jr","Cameron Devlin","Mathew Leckie","Nishan Velupillay","Cristian Volpato","Awer Mabil","Ajdin Hrustic","Tete Yengi"],
-  GER:["Oliver Baumann","Manuel Neuer","Alexander Nübel","Nathaniel Brown","Malick Thiaw","Pascal Groß","Aleksandar Pavlović","Angelo Stiller","Jamie Leweling","Maximilian Beier","Lennart Karl","Deniz Undav"],
-  CIV:["Mohamed Koné","Alban Lafont","Clément Akpa","Guéla Doué","Parfait Guiagon","Christ Inao Oulaï","Jean-Michaël Seri","Ange-Yoan Bonny","Nicolas Pépé","Bazoumana Touré","Elye Wahi"],
-  ECU:["Moisés Ramírez","Félix Torres","Yaimar Medina","Jackson Porozo","Jordy Alcívar","Denil Castillo","Anthony Valencia","Jordy Caicedo","Jeremy Arévalo"],
-  NED:["Mark Flekken","Robin Roefs","Jorrel Hato","Mats Wieffer","Marten de Roon","Quinten Timber","Guus Til","Noa Lang","Brian Brobbey","Crysencio Summerville"],
-  JPN:["Keisuke Osako","Tomoki Hayakawa","Yuto Nagatomo","Ko Itakura","Takehiro Tomiyasu","Hiroki Ito","Yukinari Sugawara","Wataru Endo","Yuito Suzuki","Daizen Maeda","Keisuke Goto","Kento Shiogai"],
-  SWE:["Kristoffer Nordfeldt","Jacob Widell Zetterström","Hjalmar Ekdal","Carl Starfelt","Eric Smith","Elliot Stroud","Besfort Zeneli","Benjamin Nygren","Gustaf Nilsson","Taha Ali","Alexander Bernhardsson","Herman Johansson"],
-  TUN:["Sabri Ben Hessen","Abdelmouhib Chamakh","Yan Valery","Moutaz Neffati","Omar Rekik","Adem Arous","Raed Chikhaoui","Anis Ben Slimane","Mortadha Ben Ouanes","Mohamed Hadj-Mahmoud","Rani Khedira","Firas Chaouat","Sebastian Tounekti","Khalil Ayari","Rayan Elloumi"],
-  BEL:["Senne Lammens","Mike Penders","Koni De Winter","Nathan Ngoy","Joaquin Seys","Axel Witsel","Diego Moreira","Dodi Lukebakio","Matias Fernandez-Pardo"],
-  EGY:["Mostafa Shobeir","El Mahdy Soliman","Mohamed Alaa","Mohamed Abdelmonem","Ahmed Fattouh","Tarek Alaa","Karim Hafez","Ahmed Zizo","Mahmoud Saber","Ibrahim Adel","Nabil Emad","Hamza Abdelkarim","Haitham Hassan","Mostafa Abdel Raouf"],
-  IRN:["Hossein Hosseini","Payam Niazmand","Danial Eiri","Ali Nemati","Mehdi Ghaedi","Mohammad Ghorbani","Amir Mohammad Razzaghinia","Mehdi Torabi","Aria Yousefi","Ali Alipour","Dennis Dargahi","Amirhossein Hosseinzadeh","Shahriar Moghanlou"],
-  ESP:["David Raya","Joan Garcia","Pau Cubarsi","Alex Grimaldo","Eric Garcia","Marcos Llorente","Marc Pubill","Gavi","Alex Baena","Yeremy Pino","Borja Iglesias","Victor Munoz"],
-  KSA:["Mohammed Al Owais","Ahmed Al Kassar","Jehad Thikri","Abdulelah Al Amri","Hassan Tambakti","Ali Lajami","Hassan Kadesh","Ali Majrashi","Mohammed Abu Al Shamat","Mohammed Kanno","Alaa Al Hajji","Ayman Yahya","Khalid Al Ghannam","Firas Al Buraikan","Sultan Al-Ghannam"],
-  URU:["Fernando Muslera","Santiago Bueno","Matias Vina","Joaquin Piquerez","Juan Manuel Sanabria","Emiliano Martinez","Rodrigo Zalazar","Agustin Canobbio","Brian Rodriguez"],
-  FRA:["Robin Risser","Brice Samba","Malo Gusto","Lucas Hernandez","Maxence Lacroix","N'Golo Kante","Warren Zaire-Emery","Maghnes Akliouche","Rayan Cherki","Jean-Philippe Mateta","Marcus Thuram"],
-  SEN:["Mory Diaw","Antoine Mendy","Mamadou Sarr","Pathe Ciss","Assane Diao","Cherif Ndiaye","Bamba Dieng","Ibrahim Mbaye","Bara Sapoko Ndiaye"],
-  IRQ:["Fahad Talib","Ahmed Basil","Ahmed Yahya","Mustafa Saadoon","Akam Hashim","Zaid Ismail","Frans Putros","Kevin Yakob","Ahmed Qasem","Ali Yousef"],
-  NOR:["Egil Selvik","Sander Tangvik","Fredrik Bjørkan","Sondre Langås","Henrik Falchener","Fredrik Aursnes","Kristian Thorstvedt","Thelo Aasgaard","Jens Petter Hauge"],
-  ARG:["Gerónimo Rulli","Juan Musso","Gonzalo Montiel","Marcos Senesi","Facundo Medina","Giovani Lo Celso","Valentín Barco","José Manuel López","Thiago Almada"],
-  ALG:["Luca Zidane","Oussama Benbot","Melvin Mastil","Rafik Belghali","Samir Chergui","Jaouen Hadjam","Zineddine Belaïd","Achraf Abada","Ibrahim Maza","Yacine Titraoui","Nadhir Benbouali","Adil Boulbina","Farès Ghedjemis"],
-  AUT:["Florian Wiegele","David Affengruber","Marco Friedl","Michael Svoboda","Carney Chukwuemeka","Alessandro Schöpf","Paul Wanner","Saša Kalajdžić"],
-  JOR:["Abdullah Al-Fakhouri","Noor Bani Attiah","Ehsan Haddad","Saed Al-Rosan","Husam Abu Dahab","Anas Banawi","Rajaei Ayed","Mohammad Al-Dawoud","Mousa Al-Tamari","Odeh Al-Fakhouri","Ali Azaizeh"],
-  UZB:["Abduvohid Nematov","Botirali Ergashev","Farrukh Sayfiev","Abdulla Abdullaev","Avazbek Ulmasaliev","Jakhongir Urozov","Behruz Karimov","Akmal Mozgovoy","Odiljon Khamrobekov","Dostonbek Khamdamov","Azizjon Ganiev","Sherzod Esanov","Azizbek Amonov"],
-  ENG:["Dean Henderson","James Trafford","Jarell Quansah","Nico O'Reilly","Djed Spence","Tino Livramento","Elliot Anderson","Kobbie Mainoo","Eberechi Eze","Ivan Toney","Noni Madueke"],
-  CRO:["Dominik Kotarski","Ivor Pandur","Marin Pongracic","Martin Erlic","Nikola Vlasic","Luka Sucic","Nikola Moro","Toni Fruk","Petar Musa","Igor Matanovic"],
-  GHA:["Benjamin Asare","Joseph Anang","Derrick Luckassen"],
-  CPV:["Marcio Rosa","CJ dos Santos","Stopira","Roberto Lopes","Sidny Lopes Cabral","Kelvin Pires","Telmo Arcanjo","Laros Duarte","Gilson Benchimol","Helio Varela","Nuno da Costa"],
+  MEX:["(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  RSA:["(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  KOR:["(não identificado)","(não identificado)"],
+  CZE:["(não identificado)","(não identificado)","(não identificado)"],
+  CAN:["(não identificado)","(não identificado)"],
+  QAT:["(não identificado)","(não identificado)"],
+  BRA:["Neymar Jr.","Endrick","Weverton","Alex Sandro","Igor Thiago"],
+  MAR:["(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  HAI:["(não identificado)","(não identificado)"],
+  SCO:["(não identificado)"],
+  USA:["(não identificado)","(não identificado)"],
+  PAR:["(não identificado)","(não identificado)"],
+  AUS:["(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  GER:["Manuel Neuer","(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  CIV:["(não identificado)","(não identificado)","(não identificado)"],
+  ECU:["(não identificado)"],
+  NED:["(não identificado)","(não identificado)"],
+  JPN:["(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  SWE:["(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  TUN:["(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  BEL:["(não identificado)"],
+  EGY:["(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  IRN:["(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  ESP:["Pau Cubarsí","(não identificado)","(não identificado)","(não identificado)"],
+  CPV:["(não identificado)","(não identificado)"],
+  KSA:["(não identificado)","(não identificado)","(não identificado)"],
+  URU:["(não identificado)"],
+  FRA:["(não identificado)","(não identificado)","(não identificado)"],
+  SEN:["(não identificado)"],
+  IRQ:["(não identificado)"],
+  NOR:["(não identificado)"],
+  ARG:["(não identificado)"],
+  ALG:["(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
+  AUT:["(não identificado)"],
+  JOR:["(não identificado)"],
+  UZB:["(não identificado)","(não identificado)","(não identificado)"],
+  ENG:["(não identificado)","(não identificado)","(não identificado)"],
+  CRO:["(não identificado)","(não identificado)"],
+  GHA:["(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)","(não identificado)"],
 };
 
 /* ===== Expansão: TEAMS -> figurinhas (escudo + jogadores + foto), slots 1..20 ===== */
